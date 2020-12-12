@@ -16,13 +16,13 @@ typedef struct date {
 void drawCal(struct tm t, int monthdays);
 void IsLeapYear(int year);
 tdate today;//fix today
-struct tm *t, *real;
+struct tm *t;
 
 int main(int argc, char *argv[])
 {
     time_t now = time(NULL);
+    time_t realtime = time(NULL);
     t = localtime(&now);
-    real = localtime(&now);
 
     today.year = t->tm_year + 1900;
     today.month = t->tm_mon + 1;
@@ -69,6 +69,9 @@ int main(int argc, char *argv[])
             break;
         case KEY_HOME://back today
             //back to real
+            now = realtime;
+            t = localtime(&now);
+            IsLeapYear(t->tm_year+1900);
             break;
         case '\n'://go to post
             posts_list(t->tm_year+1900,t->tm_mon+1,t->tm_mday); //input year, month, day
@@ -177,10 +180,11 @@ void drawCal(struct tm t, int monthdays)
         }
     }
     addstr("\n\n");
-    addstr("[key up] previous month     ");
-    addstr("[key down] next month\n");
-    addstr("[key left] previous day     ");
-    addstr("[key right] next day\n");
+    addstr("[up] previous month         ");
+    addstr("[down] next month\n");
+    addstr("[left] previous day         ");
+    addstr("[right] next day\n");
     addstr("[enter] go to post          ");
+    addstr("[home] back to today\n");
     addstr("[q] quit");
 }
