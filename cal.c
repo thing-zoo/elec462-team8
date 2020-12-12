@@ -28,13 +28,12 @@ typedef struct date {
 void drawCal(struct tm t, int monthdays);
 void IsLeapYear(int year);
 tdate today;//fix today
-struct tm *real;
+struct tm *t;
 
 int main(int argc, char *argv[])
 {
     time_t now = time(NULL);
-    struct tm *t = localtime(&now);
-    real = localtime(&now);
+    t = localtime(&now);
 
     today.year = t->tm_year + 1900;
     today.month = t->tm_mon + 1;
