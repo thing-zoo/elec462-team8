@@ -7,19 +7,6 @@
 char* week[7] = { "SUN", "MON","TUE","WED","THU","FRI","SAT" };
 int monthdays[12] = {31,28,31,30,31,30,31,31,30,31,30,31};
 
-//example
-char* text[] = {
-        "System Programming Team 8   ",
-        "----------2020--10----------",
-        " SUN MON TUE WED THU FRI SAT",
-        "                   1   2   3",
-        " 4  5  6  7  8  9 10",
-        "11 12 13 14 15 16 17",
-        "18 19 20 21 22 23 24",
-        "25 26 27 28 29 30 31",
-        "[Q] quit [<-] previous month [space bar] today [->] next month"
-    };
-
 typedef struct date {
     int year;
     int month;
@@ -83,8 +70,13 @@ int main(int argc, char *argv[])
         case KEY_HOME://back today
             //back to real
             break;
-        case '\n':
+        case '\n'://go to post
             posts_list(t->tm_year+1900,t->tm_mon+1,t->tm_mday); //input year, month, day
+            break;
+        case 'Q'://exit    
+        case 'q':
+            endwin();
+            exit(0);
         default:
             break;
         }
@@ -107,7 +99,7 @@ void IsLeapYear(int year)
 void drawCal(struct tm t, int monthdays)
 {
     int firstday = t.tm_wday;//day of week on 1st each month
-    char yearmonth[30];//----------2020--10----------
+    char yearmonth[100];//----------2020--10----------
     int dayOfWeek;//0-6: sun~sat
     
     int i = t.tm_mday;
@@ -122,25 +114,46 @@ void drawCal(struct tm t, int monthdays)
     move(0, 0);
     addstr("System Programming Team 8   ");
     
-    move(1, 0);
-    sprintf(yearmonth, "----------%4d--%2d----------", t.tm_year + 1900, t.tm_mon + 1);
+    move(2, 0);
+    sprintf(yearmonth, "------------------------%4d--%2d------------------------", t.tm_year + 1900, t.tm_mon + 1);
     addstr(yearmonth);
 
-    move(2,0);
-    addstr(" SUN MON TUE WED THU FRI SAT");
+    start_color();
+    init_pair(1, COLOR_WHITE, COLOR_BLACK);
+    init_pair(2, COLOR_RED, COLOR_BLACK);
+    init_pair(3, COLOR_BLUE, COLOR_BLACK);
+    
+    attron(COLOR_PAIR(1));
 
-    move(3, 0);
+    move(4,0);
+    for (int i = 0; i < 7; i++)
+    {
+        if (i == 0)
+            attron(COLOR_PAIR(2));
+        else if (i == 6)
+            attron(COLOR_PAIR(3));
+        else
+            attron(COLOR_PAIR(1));
+
+        addstr("     ");
+        addstr(week[i]);
+        
+    }
+
+    move(6, 0);
     for (int i = 0; i < firstday; i++)
-        printw("%4s", "");
+        printw("%8s", "");
     for (int i = 0, day = 1, y = 4; i < monthdays; i++)
     {
-        printw("%2s", "");
+        printw("%6s", "");
 
         //color weekend
         if (dayOfWeek == 0)//sun
-            attron(COLOR_PAIR(1));
-        if (dayOfWeek == 6)//sat
             attron(COLOR_PAIR(2));
+        else if (dayOfWeek == 6)//sat
+            attron(COLOR_PAIR(3));
+        else
+            attron(COLOR_PAIR(1));
         
         //highlight today    
         if((t.tm_year + 1900) == today.year && day == today.day && (t.tm_mon + 1) == today.month)
@@ -158,9 +171,16 @@ void drawCal(struct tm t, int monthdays)
 
         if (dayOfWeek == 7)
         {//go to nextweek
-            addstr("\n");
+            addstr("\n\n");
             //move(y++, 0);
             dayOfWeek = 0;
         }
     }
+    addstr("\n\n");
+    addstr("[key up] previous month     ");
+    addstr("[key down] next month\n");
+    addstr("[key left] previous day     ");
+    addstr("[key right] next day\n");
+    addstr("[enter] go to post          ");
+    addstr("[q] quit");
 }
