@@ -2,6 +2,7 @@
 #include <unistd.h>
 #include <curses.h>
 #include <time.h>
+#include "posts.c"
 
 char* week[7] = { "SUN", "MON","TUE","WED","THU","FRI","SAT" };
 int monthdays[12] = {31,28,31,30,31,30,31,31,30,31,30,31};
@@ -28,12 +29,13 @@ typedef struct date {
 void drawCal(struct tm t, int monthdays);
 void IsLeapYear(int year);
 tdate today;//fix today
-struct tm *t;
+struct tm *t, *real;
 
 int main(int argc, char *argv[])
 {
     time_t now = time(NULL);
     t = localtime(&now);
+    real = localtime(&now);
 
     today.year = t->tm_year + 1900;
     today.month = t->tm_mon + 1;
@@ -81,6 +83,8 @@ int main(int argc, char *argv[])
         case KEY_HOME://back today
             //back to real
             break;
+        case '\n':
+            posts_list(t->tm_year+1900,t->tm_mon+1,t->tm_mday); //input year, month, day
         default:
             break;
         }

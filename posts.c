@@ -561,16 +561,3 @@ void posts_list(int year, int month,int day){
 	}
 }
 
-
-
-int main(void){
-
-	initscr();
-	
-	posts_list(2020,11,19); //input year, month, day 2020-11-19	
-	
-	//
-	endwin();
-	return 0;
-
-}
