@@ -24,10 +24,9 @@ void update();
 //처음 옵셥
 #define QUIT 0
 #define MAIN_MENU 1
-#define START 2
-#define SIGNIN 3
-#define SIGNUP 4
-#define DIARY 5
+#define SIGNIN 2
+#define SIGNUP 3
+#define DIARY 4
 //
 
 
@@ -60,10 +59,12 @@ int titleColumns, titleRows; // number of colums and rows in the title banner
 int cursorPos; // current row cursor is on (vertical cursor position)
 int topOptPos, botOptPos; // position of the first menu choice, last menu choice
 
-char *titleText; // char pointer to hold text of the tile
+char *titleText_banner; // char pointer to hold text of the tile
+char *titleText_login;
 //
 
 typedef struct LoginData{
+	int Clientfd;
 	char ID[MAXBUF];
 	char PASSWORD[MAXBUF];
 }LoginData;//클라이언트의 ID와 PASSWORD를 저장하는 구조체
@@ -89,6 +90,13 @@ char titleBanner[] = {"\
 0   0   0    0   0  0 00    00  \
 0   0   0    00000  0   0   00  \
 0000  00000 0     0 0   0   00  "};
+
+char titleSignin[] = {"\
+0      0000   000  00000 00   0\
+0     0    0 0       0   0 0  0\
+0     0    0 0  0    0   0  0 0\
+0     0    0 0   0   0   0   00\
+00000  0000   0000 00000 0   00"};
 
 WINDOW *w;
 
@@ -129,8 +137,8 @@ void initMenu(int numberOfChoices);
 // returns true if successful, false if rows or colums is too big
 // assert that colums is no greater than width of screen
 // rows no greater than height of screen
-bool initTitle(int columns, int rows, char *text);
-
+bool initTitle_banner(int columns, int rows, char *text);
+bool initTitle_login(int columns, int rows, char *text);
 // id is the state id associated with the choice, choicetext is the actual
 // text of the choice
 // returns -1 if you try to initiate more than numberOfChoices
@@ -138,9 +146,11 @@ int initMenuChoice(int id, char choiceText[]);
 
 // called by update(), passes key pressed from keyboard (if any)
 void updateMainMenu(int key);
+void updateSignin(int key);
 
 // called by render()
 void renderMainMenu();
+void renderSignin();
 
 // call before quitting, frees up allocated memory
 void cleanupMenu();
@@ -148,7 +158,7 @@ void cleanupMenu();
 
 
 //signin
-void updateSignup(key);
+//void updateSignup(key);
 
 
 
@@ -158,6 +168,7 @@ int main(int argc, char* argv[])
 	/*int sock;
 	struct sockaddr_in serv_addr;
 	char message[30];
+	char check[MAXBUF]={0,};
 	int str_len;
     LoginData input;
 	
@@ -170,27 +181,46 @@ int main(int argc, char* argv[])
 	if(sock == -1)
 		error_handling("socket() error");
 
-	memset(&input,0,sizeof(input));
 	memset(&serv_addr, 0, sizeof(serv_addr));
 	serv_addr.sin_family=AF_INET;
 	serv_addr.sin_addr.s_addr=inet_addr(argv[1]);
 	serv_addr.sin_port=htons(atoi(argv[2]));
 
-    printf("ID PASSWORD:");
-    scanf("%s %s",input.ID,input.PASSWORD);
 
 	if(connect(sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr))==-1) 
 		error_handling("connect() error!");
 
+	memset(&input,0,sizeof(LoginData));
 
-	
-	if(write(sock,(struct message*)&input,sizeof(input))<0)
+    printf("ID PASSWORD:");
+    scanf("%s %s",input.ID,input.PASSWORD);
+
+	//printf("ID: %s\n",input.ID);
+	//printf("PASSWORD: %s\n",input.PASSWORD);
+
+	if(write(sock,&input.ID,sizeof(input.ID))<0)
     {
 		error_handling("write error : ");
 	}
 
-	close(sock);
-	return 0;*/
+	if(write(sock,&input.PASSWORD,sizeof(input.PASSWORD))<0)
+    {
+		error_handling("write error : ");
+	}
+	printf("write!\n");
+	read(sock,check,1);
+
+	printf("%s\n",check);
+	if(strcmp(check,"O")==0)
+	{
+		printf("i recived O\n");
+	}
+	else
+	{
+		printf("i recived X\n");
+	}
+
+	close(sock);*/
 
 	initialize();
 
@@ -254,7 +284,8 @@ void initialize()
 
 	initMenu(3);
 	
-	initTitle(32, 5, titleBanner);
+	initTitle_banner(32, 5, titleBanner);
+	initTitle_login(31, 5, titleSignin);
 	initMenuChoice(SIGNIN, "Sign in");
 	initMenuChoice(SIGNUP, "Sign up");
 	initMenuChoice(QUIT, "Quit");
@@ -273,9 +304,9 @@ void render()
 		case MAIN_MENU:
 			renderMainMenu();
 			break;
-		// case SIGNIN:
-		// 	renderSignin();
-		// 	break;
+		case SIGNIN:
+		    renderSignin();
+		 	break;
 		// case SIGNUP:
 		// 	renderSignup();
 		// 	break;
@@ -319,13 +350,13 @@ void update() {
 				updateMainMenu(key);
 				break;
 			// case SIGNUP:
-			// 	updateSignup(key);
-			// 	break;	
-			// case SIGNIN:
-			// 	updateSignin(key);
-			// 	break;	
-			// default:
-			// 	break;
+			//  	updateSignup(key);
+			 	//break;	
+			case SIGNIN:
+			 	updateSignin(key);
+			 	break;	
+			default:
+			 	break;
 		}
 	} 
 
@@ -384,7 +415,7 @@ void initMenu(int numberOfChoices)
 	numChoices = numberOfChoices;
 }
 
-bool initTitle(int columns, int rows, char *text)
+bool initTitle_banner(int columns, int rows, char *text)
 {
 	// make sure entire menu will actually fit
 	if((columns > SCREEN_WIDTH)||(rows > (SCREEN_HEIGHT - 1 - numChoices)))
@@ -395,14 +426,41 @@ bool initTitle(int columns, int rows, char *text)
 	titleRows = rows;
 
 	// allocate memory for title banner's text
-	titleText = malloc(rows * columns + 1);
+	titleText_banner = malloc(rows * columns + 1);
 
 
 	// copy text into title text
 	int i;
 	for(i = 0; i < rows * columns; i++)
 	{
-		titleText[i] = text[i];
+		titleText_banner[i] = text[i];
+	}
+
+	cursorPos = TOP_BANNER_PAD + titleRows + BANNER_OPTIONS_PAD + 1;
+	topOptPos = cursorPos;
+	botOptPos = cursorPos + numChoices - 1;
+	return TRUE;
+}
+
+bool initTitle_login(int columns, int rows, char *text)
+{
+	// make sure entire menu will actually fit
+	if((columns > SCREEN_WIDTH)||(rows > (SCREEN_HEIGHT - 1 - numChoices)))
+	{
+		return FALSE;
+	}
+	titleColumns = columns;
+	titleRows = rows;
+
+	// allocate memory for title banner's text
+	titleText_login = malloc(rows * columns + 1);
+
+
+	// copy text into title text
+	int i;
+	for(i = 0; i < rows * columns; i++)
+	{
+		titleText_login[i] = text[i];
 	}
 
 	cursorPos = TOP_BANNER_PAD + titleRows + BANNER_OPTIONS_PAD + 1;
@@ -468,7 +526,7 @@ void renderMainMenu()
 	// print out title banner
 	for(i = 0; i < titleColumns * titleRows; i++)
 	{
-		mvaddch(y, x, titleText[i]);
+		mvaddch(y, x, titleText_banner[i]);
 		if((x - leftEdgePos) >= (titleColumns-1))
 		{
 			x = leftEdgePos;
@@ -500,10 +558,10 @@ void renderMainMenu()
 void cleanupMenu()
 {
 	free(mc);
-	free(titleText);
+	free(titleText_banner);
 }
 
-void updateSignup(key)
+void updateSignin(int key)
 {
 // process keyboard input
 	switch(key)
@@ -533,5 +591,43 @@ void updateSignup(key)
 			break;
 	}
 }
+void renderSignin()
+{
+	// perform setup for printing title banner
+	int leftEdgePos = (int) (80 - titleColumns)/2;
+	int x = leftEdgePos;
+	int y = TOP_BANNER_PAD;
+	int i;
 
+	// print out title banner
+	for(i = 0; i < titleColumns * titleRows; i++)
+	{
+		mvaddch(y, x, titleText_login[i]);
+		if((x - leftEdgePos) >= (titleColumns-1))
+		{
+			x = leftEdgePos;
+			y++;
+		} else x++;
+	}
+
+	// move cursor to correct row to print out choices
+	y = TOP_BANNER_PAD + titleRows + BANNER_OPTIONS_PAD;
+
+	// print out choices
+	for(i = 0; i < currentNumChoices; i++)
+	{
+		y++;
+		leftEdgePos = (int) (80 - strlen(mc[i].text))/2;
+		// add cursors to indicate slected choice
+		if(y == cursorPos)
+		{
+			mvaddstr(y, leftEdgePos - 3, "-> ");
+			mvaddstr(y, leftEdgePos + strlen(mc[i].text), " <-");
+		}
+		mvaddstr(y, leftEdgePos, mc[i].text);
+	}
+	mvprintw(22,0, "Use arrow keys to select an option"); 
+	mvprintw(23,0, "Select an option with (Enter)"); 
+	mvprintw(24,0, "Select \"Quit\" or press (ESC) to quit"); 
+}
 
