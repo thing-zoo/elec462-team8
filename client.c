@@ -1,17 +1,11 @@
-/* 
- * =============================================================================
- * SystemProgrammingProject
- * =============================================================================
- */
-
 #define _CRT_SECURE_NO_WARNINGS
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
-#include <curses.h>
+#include <signal.h>
+int sock;
+
+#include "posts.c"
+#include "cal.c"
 
 //init
 #define TICKS_TO_COOLDOWN 0
@@ -132,28 +126,13 @@ int getState();
 int getPrevState();
 int setState(int newState);
 
-
-/* 
- * =======================
- *첫 화면에 옵션 선택부분 구현
- * =======================
- */
-
-
-// call first to allocate mem for memory choices
+//첫 화면에 옵션 선택부분 구현
 void initMenu(int numberOfChoices);
 
-// initiate the banner, coulums is width of banner, rows is number 
-// of rows, *text is a character array holding the banner
-// returns true if successful, false if rows or colums is too big
-// assert that colums is no greater than width of screen
-// rows no greater than height of screen
+
 bool initTitle_banner(int columns, int rows, char *text);
 bool initTitle_signin(int columns, int rows, char *text);
 bool initTitle_signup(int columns, int rows, char *text);
-// id is the state id associated with the choice, choicetext is the actual
-// text of the choice
-// returns -1 if you try to initiate more than numberOfChoices
 int initMenuChoice(int id, char choiceText[]);
 
 // called by update(), passes key pressed from keyboard (if any)
@@ -168,19 +147,14 @@ void renderSignup();
 // call before quitting, frees up allocated memory
 void cleanupMenu();
 
-
-
-//signin
-//void updateSignup(key);
-
-int sock;
-
-
 int main(int argc, char* argv[])
 {
 	struct sockaddr_in serv_addr;
 	char message[30];
 	int str_len;
+
+	signal(SIGINT, SIG_IGN);
+	signal(SIGQUIT, SIG_IGN);
 	
 	if(argc!=3){
 		printf("Usage : %s <IP> <port>\n", argv[0]);
@@ -217,7 +191,7 @@ int main(int argc, char* argv[])
 	}
 
 	cleanup();
-	close(sock);
+    close(sock);
 
 	return 0;
 
@@ -248,12 +222,7 @@ void initialize()
 		}
 	}
 
-	/*
-	 * These two lines make it so that getch() doesn't need to wait 
-	 * for a character to be entered for getch() to return.
-	 * This allows the game to update and render even when there is no input
-	 * Also put as: call getch() without blocking
-	 */
+	
 	cbreak(); // put terminal in c break mode
 	nodelay(w, TRUE); // don't wait for enter to read char
 
@@ -369,8 +338,6 @@ void cleanup()
     	endwin();
 }
 
-
-//state.c
 int getState()
 {
 	return state;
@@ -387,8 +354,6 @@ int setState(int newState)
 	state = newState;
 }
 
-
-//mainMenu.c
 void initMenu(int numberOfChoices)
 {
 	// allocate mem for menu choices
@@ -444,9 +409,6 @@ bool initTitle_signin(int columns, int rows, char *text)
 		titleText_signin[i] = text[i];
 	}
 
-	// cursorPos = TOP_BANNER_PAD + titleRows[1] + BANNER_OPTIONS_PAD + 1;
-	// topOptPos = cursorPos;
-	// botOptPos = cursorPos + numChoices - 1;
 	return TRUE;
 }
 
@@ -654,20 +616,6 @@ void renderSignin()
 	// move cursor to correct row to print out choices
 	y = TOP_BANNER_PAD + titleRows[1] + BANNER_OPTIONS_PAD;
 
-	// print out choices
-	// for(i = 0; i < currentNumChoices; i++)
-	// {
-	// 	y++;
-	// 	leftEdgePos = (int) (80 - strlen(mc[i].text))/2;
-	// 	// add cursors to indicate slected choice
-	// 	if(y == cursorPos)
-	// 	{
-	// 		mvaddstr(y, leftEdgePos - 3, "-> ");
-	// 		mvaddstr(y, leftEdgePos + strlen(mc[i].text), " <-");
-	// 	}
-	// 	mvaddstr(y, leftEdgePos, mc[i].text);
-	// }
-
 	mvprintw(y,leftEdgePos, "Input your ID/PASSWORD");
     echo();
     crmode();
@@ -684,7 +632,7 @@ void renderSignin()
 	move(y+1,leftEdgePos+5); // to contents
 	while( ( c = getch() ) != EOF ){
 		
-		if( c == 27 ) return 1;
+		if( c == 27 ) return;
 
 		if( c == '\n' ) break;
 
@@ -720,7 +668,7 @@ void renderSignin()
     crmode();
 	while( ( c = getch() ) != EOF ){
 		
-		if( c == 27 ) return 1;
+		if( c == 27 ) return;
 
 		if( c == '\n' ) break;
 
@@ -769,14 +717,21 @@ void renderSignin()
 		error_handling("write error : ");
 	}
 
+	read(sock,check,1);
+	if(strcmp(check,"O")==0)
+	{
+		strcpy(clnt_ID, logindata.ID);
+		mvprintw(y+4,leftEdgePos, "Welcome :D");
+		cal(sock);
+	}
+	else
+	{
+		mvprintw(y+4,leftEdgePos, "Who are you?");
+	}
+	
+	
 
-	mvprintw(y+4,leftEdgePos, "Welcome :D");
-
-
-
-
-	return 0;
-    noecho();
+	return;
 
  
 }
@@ -806,20 +761,6 @@ void renderSignup()
 	// move cursor to correct row to print out choices
 	y = TOP_BANNER_PAD + titleRows[2] + BANNER_OPTIONS_PAD;
 
-	// print out choices
-	// for(i = 0; i < currentNumChoices; i++)
-	// {
-	// 	y++;
-	// 	leftEdgePos = (int) (80 - strlen(mc[i].text))/2;
-	// 	// add cursors to indicate slected choice
-	// 	if(y == cursorPos)
-	// 	{
-	// 		mvaddstr(y, leftEdgePos - 3, "-> ");
-	// 		mvaddstr(y, leftEdgePos + strlen(mc[i].text), " <-");
-	// 	}
-	// 	mvaddstr(y, leftEdgePos, mc[i].text);
-	// }
-
 	mvprintw(y,leftEdgePos, "Create your ID/PASSWORD");
     echo();
     crmode();
@@ -837,7 +778,7 @@ void renderSignup()
 	move(y+1,leftEdgePos+5); // to contents
 	while( ( c = getch() ) != EOF ){
 		
-		if( c == 27 ) return 1;
+		if( c == 27 ) return;
 
 		if( c == '\n' ) break;
 
@@ -873,7 +814,7 @@ void renderSignup()
     crmode();
 	while( ( c = getch() ) != EOF ){
 		
-		if( c == 27 ) return 1;
+		if( c == 27 ) return;
 
 		if( c == '\n' ) break;
 
@@ -925,16 +866,13 @@ void renderSignup()
 	if(strcmp(check,"O")==0)
 	{
 		mvprintw(y+4,leftEdgePos, "success!");
-
 	}
 	else
 	{
 		mvprintw(y+4,leftEdgePos, "fail!");
 	}
 
-	return 0;
-
- 
+	return;
 }
 
 

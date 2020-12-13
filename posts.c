@@ -1,47 +1,5 @@
-/*
-#include <stdio.h>
-#include <curses.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <time.h>
-#include <fcntl.h>
+#include "posts.h"
 
-
-#define MALLOC(p,s) if(!(p = malloc(s))) { fprintf(stderr,"malloc error\n"); exit(1); }
-#define REALLOC(p,s) if(!(p = realloc(p,s))) { fprintf(stderr,"realloc error\n"); exit(1); }
-#define TITLEBUF 32
-#define CONTBUF 1024
-
-struct post{
-	char ID[10];
-	char title[TITLEBUF];
-	char contents[CONTBUF];
-	char time[30];
-	int year;
-	int month;
-	int day;
-};
-
-static char clnt_ID[10] = "John"; // from client.c ,,,,
-
-int write_title(struct post* p);
-void get_time(struct post* p);
-void write_contents(struct post* p);
-void store_post(struct post p);
-void empty_day(int year,int month, int day);
-void print_posts(struct post *plist, int len, int year, int month, int day);
-void posts_list(int year, int month,int day);
-void print_notice(void);
-void write_post(int year, int month, int day);
-void print_post(struct post p);
-int delete_post(struct post p);
-void print_posts_set(struct post *plist, int st, int end, int no);
-struct post * post_refresh(int *sum, int year, int month, int day);
-int select_delete(int st, int end);
-*/
-
-static int sock;
 //write a title
 int write_title(struct post *p){ 
 	char buf[TITLEBUF];
@@ -158,25 +116,6 @@ void store_post(struct post p){
 		exit(1);
 	}
 
-
-
-/*	
-
-	if( ( fd = open("post_data", O_WRONLY | O_CREAT | O_APPEND, 0666) ) == -1 ){ //Write only, create if doesn't exist, O_APPEND , & permissions
-		fprintf(stderr,"can't open 'post_data' file\n");
-		exit(1);
-	}
-
-	if( write(fd, &p, sizeof(p)) == -1 ){
-		fprintf(stderr,"write error\n");
-		exit(1);
-	}
-
-	if( close(fd) == -1 ){
-		fprintf(stderr,"close error\n");
-		exit(1);
-	}
-*/
 }
 
 //before posting, print notice
@@ -236,7 +175,6 @@ void write_post(int year, int month, int day){
 	write_contents(&p);
 
 
-	printw("5555555555");	
 	store_post(p);
 
 }
@@ -244,16 +182,7 @@ void write_post(int year, int month, int day){
 
 //delete a post
 int delete_post(struct post p){
-	/*
-	struct post temp;
-	struct post *pp;
-	int i;
-	int sum = 0;
-	int fd;
-	int len = 0;
-	int ifmal = 0;
-	int iffind = 0;
-	*/
+
 	int inst = 4;
 	int result;
 
@@ -262,73 +191,6 @@ int delete_post(struct post p){
 
 	write(sock, &p, sizeof(p));
 
-	/*
-	if( ( fd = open("post_data", O_RDWR) ) == -1 ){
-		fprintf(stderr,"cannot open 'post_data' file\n");
-		exit(1);
-	}
-
-	while( read(fd, &temp, sizeof(struct post)) > 0 ){
-		if( !strcmp(p.ID,clnt_ID) && !strcmp(temp.ID,p.ID) && !strcmp(temp.title,p.title) && !strcmp(temp.time,p.time) ){ //check ID, tile, time -> What are we gonna delete?
-			iffind = 1;		
-			while( read(fd, &temp, sizeof(struct post)) > 0){
-				if( sum == 0 ){
-					sum++;
-					MALLOC(pp,sizeof(*pp));
-					pp[0] = temp;
-					ifmal = 1;			
-					len++;
-				}
-				else{
-					REALLOC(pp,sizeof(*pp)*(sum+1));
-					pp[sum] = temp;
-					sum++;
-					len++;
-				}
-		
-			}
-	
-			if( lseek(fd, -(sum+1)*sizeof(struct post), SEEK_CUR) == -1 ){
-				fprintf(stderr,"fseek error\n");
-				exit(1);
-			}
-
-
-			for( i = 0; i < sum; i++){
-				if( write(fd, &pp[i], sizeof(struct post)) == -1 ){
-					fprintf(stderr, "fwrite error\n");
-					exit(1);
-				}
-			}			
-			
-
-			break;	
-		}	
-		
-		len++;
-	}
-	
-	if( ftruncate(fd,len*sizeof(struct post)) == -1 ){
-		fprintf(stderr,"truncate error\n");
-		exit(1);
-	}
-
-	close(fd);
-
-
-	if( ifmal ){
-		free(pp);
-		return 0;
-	}
-	else if( iffind == 1 ) return 0;
-	else if( iffind == 0 ){
-		return -1;
-	}
-
-	fprintf(stderr,"delete error\n");
-	exit(-1);
-
-	*/
 	read(sock,(int *)&result,sizeof(int));
 
 
@@ -350,7 +212,7 @@ struct post * post_refresh(int *sum, int year, int month, int day){
 	int inst = 5;
 	int i;	
 
-	write(sock,&inst,sizeof(int));
+	write(sock,(int*)&inst,sizeof(int));
 	
 	write(sock,(int *)&year,sizeof(int));
 	write(sock,(int *)&month,sizeof(int));
@@ -371,37 +233,6 @@ struct post * post_refresh(int *sum, int year, int month, int day){
 
 
 	return plist;
-
-	/*
-	if( ( fd = open("post_data",O_RDONLY) ) == -1 ){
-		fprintf(stderr,"can't open 'post_data' file\n");
-		exit(1);
-	}
-
-
-	while( read(fd, &temp, sizeof(struct post) ) > 0 ){
-		if( temp.year==year && temp.month==month && temp.day == day ){
-			
-			
-			if( (*sum) == 0 ){
-				(*sum)++;
-				MALLOC(plist,sizeof(*plist));
-				plist[0] = temp;
-			}
-			else{
-				REALLOC(plist,sizeof(*plist)*((*sum)+1));
-				plist[*sum] = temp;
-				(*sum)++;
-
-			}
-		
-					
-		}	
-
-	}	
-	
-	close(fd);
-	*/
 
 }
 
@@ -516,8 +347,8 @@ void print_posts(struct post *plist, int len,int year, int month, int day){
 		
 		if( c == 'd' ){ // delete
 			del = select_delete(st,end) - 48;
-			if( del == 1 ) continue;
-			if( delete_post(plist[st+del]) == -1 ){
+			if( del == -1 ) continue;
+			if( delete_post(plist[st+del]) == 1 ){
 				printw("You couldn't delete other user's post !!\n");
 				printw("Press any key to continue..\n");
 				getch();
@@ -578,44 +409,16 @@ int select_delete(int st, int end){
 }
 
 //show posts in selected date
-void posts_list(int clnt_sock, int year, int month,int day){
+void posts_list(int year, int month,int day){
 	struct post *plist;
 	int fd;
 	int sum = 0;
 	//int ifmal = 0;
 	struct post temp;
-	sock = clnt_sock;
 
-	keypad(stdscr, TRUE);
-	
-	
 
 	plist = post_refresh(&sum,year,month,day);	
 	
-	/*	
-	if( ( fd = open("post_data", O_RDONLY | O_CREAT, 0666 ) ) == -1 ){
-		fprintf(stderr,"can't open 'post_data' file\n");
-		exit(1);
-	}
-
-	while( read(fd, &temp, sizeof(struct post) ) > 0 ){
-		if( temp.year == year && temp.month==month && temp.day == day ){ // check month & day -> append to plist
-			if( sum == 0 ){
-				sum++;
-				MALLOC(plist,sizeof(*plist));
-				plist[0] = temp;
-			}
-			else{
-				REALLOC(plist,sizeof(*plist)*(sum+1));
-				plist[sum] = temp;
-				sum++;
-			}
-		}	
-	}	
-	
-	close(fd);
-	
-*/
 	if( sum == 0 ){ // no posts for that month & that day
 		empty_day(year,month,day);
 		return;
@@ -626,16 +429,3 @@ void posts_list(int clnt_sock, int year, int month,int day){
 		return; //go to the calender
 	}
 }
-
-/*
-int main(void){
-
-	initscr();
-	
-	posts_list(2020,11,19); //input year, month, day 2020-11-19	
-	
-	//
-	endwin();
-	return 0;
-
-}*/

@@ -1,8 +1,3 @@
-#include <stdio.h>
-#include <unistd.h>
-#include <curses.h>
-#include <time.h>
-#include "posts.c"
 
 char* week[7] = { "SUN", "MON","TUE","WED","THU","FRI","SAT" };
 int monthdays[12] = {31,28,31,30,31,30,31,31,30,31,30,31};
@@ -18,7 +13,7 @@ void IsLeapYear(int year);
 tdate today;//fix today
 struct tm *t;
 
-int main(int argc, char *argv[])
+void cal(int sock)
 {
     time_t now = time(NULL);
     time_t realtime = time(NULL);
@@ -29,18 +24,16 @@ int main(int argc, char *argv[])
     today.day = t->tm_mday;
 
     IsLeapYear(t->tm_year+1900);
-    
-    initscr();
-    curs_set(0); // hide the cursor
-    keypad(stdscr, TRUE);
-    
+
+
     while(1)
     {
         clear();
         drawCal(*t, monthdays[t->tm_mon]);
         refresh();
+        int op = getch();
 
-        switch (getch())
+        switch (op)
         {
         case KEY_UP://previous month
             //go to last day of previous month
@@ -79,16 +72,16 @@ int main(int argc, char *argv[])
         case 'Q'://exit    
         case 'q':
             endwin();
+            int inst = 999;
+            write(sock, (int*)&inst, sizeof(inst));
+            close(sock);
+            
             exit(0);
         default:
             break;
         }
     }
     
-    //getch();
-    //endwin();
-    
-    return 0;
 }
 
 void IsLeapYear(int year)

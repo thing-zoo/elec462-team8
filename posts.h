@@ -31,7 +31,7 @@ void write_contents(struct post* p);
 void store_post(struct post p);
 void empty_day(int year,int month, int day);
 void print_posts(struct post *plist, int len, int year, int month, int day);
-void posts_list(int clnt_sock,int year, int month,int day);
+void posts_list(int year, int month,int day);
 void print_notice(void);
 void write_post(int year, int month, int day);
 void print_post(struct post p);
@@ -39,5 +39,3 @@ int delete_post(struct post p);
 void print_posts_set(struct post *plist, int st, int end, int no);
 struct post * post_refresh(int *sum, int year, int month, int day);
 int select_delete(int st, int end);
-
-#include "posts.c"

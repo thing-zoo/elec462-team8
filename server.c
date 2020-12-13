@@ -7,6 +7,7 @@
 #include <netinet/in.h>
 #include <pthread.h>
 #include <fcntl.h>
+#include "posts.h"
 
 #define BUF_SIZE 100
 #define MAX_CLNT 256
@@ -32,6 +33,9 @@ typedef struct LoginData{
 void send_msg(int client, char * msg, int len);
 int handle_rcvmsg(int clnt_sock, LoginData info);
 int Login(LoginData * input);
+void open_file(int clnt_sock);
+void p_refresh(int clnt_sock);
+void delete_a_post(int clnt_sock);
 
 int main(int argc, char *argv[])
 {
@@ -81,7 +85,157 @@ int main(int argc, char *argv[])
 
 	return 0;
 }
+
+
+void open_file(int clnt_sock){
+	int fd;
+	struct post p;
+	if( (  fd = open("post_data", O_WRONLY | O_CREAT | O_APPEND, 0666 ) ) == -1 ){
+		fprintf(stderr, "can't open 'post_data' file\n");
+		exit(1);
+	}
 	
+	read(clnt_sock, &p, sizeof(p));
+
+	write(fd, &p, sizeof(p));
+				
+	close(fd);	
+
+}
+
+
+void p_refresh(int clnt_sock){
+	int fd;
+	struct post temp;
+	struct post *plist;
+	int sum = 0;
+	int year, month, day;
+	int i;
+
+	read(clnt_sock, (int *)&year, sizeof(int));
+	read(clnt_sock, (int *)&month, sizeof(int));
+	read(clnt_sock, (int *)&day, sizeof(int));
+
+	year = (int)year;
+	month = (int )month;
+	day = (int )day;
+
+
+	if ( ( fd = open("post_data", O_RDONLY | O_CREAT, 0666) ) == -1 ){
+		fprintf(stderr,"can't open 'post_data' file\n");
+		exit(1);
+	}
+
+	while( read(fd, &temp, sizeof(struct post) ) > 0 ){
+		if( temp.year==year && temp.month==month && temp.day == day ){
+			
+			if( sum == 0 ){
+				sum++;
+				MALLOC(plist,sizeof(*plist));
+				plist[0] = temp;
+			}
+			else{
+				REALLOC(plist,sizeof(*plist)*(sum+1));
+				plist[sum] = temp;
+				sum++;
+
+			}
+		
+					
+		}	
+
+	}	
+	
+	close(fd);
+	write(clnt_sock, (int *)&sum, sizeof(int));
+
+	for(i = 0;i<sum;i++){
+		write(clnt_sock,&plist[i], sizeof(struct post));
+
+	}
+	//write(clnt_sock, (struct post *)plist, sizeof(struct post)*sum);
+
+	if( sum > 0 ) free(plist);
+}
+void delete_a_post(int clnt_sock){
+	int fd;
+	int len = 0;
+	int sum = 0;
+	int i;
+	int iffind = 0;
+	int ifmal = 0;
+	struct post p;
+	struct post temp;
+	struct post *pp;
+	
+	int good = 0;
+	int fail = 1;
+
+	if( ( fd = open("post_data", O_RDWR ) ) == -1 ){
+		fprintf(stderr,"cannot open 'post_data' file\n");
+		exit(1);
+	}
+
+	read(clnt_sock, &p, sizeof(p));
+
+
+	while( read(fd, &temp, sizeof(struct post)) > 0 ){
+		if( !strcmp(p.ID,clnt_ID) && !strcmp(temp.ID,p.ID) && !strcmp(temp.title,p.title) && !strcmp(temp.time,p.time) ){ //check ID, tile, time -> What are we gonna delete?
+			iffind = 1;		
+			while( read(fd, &temp, sizeof(struct post)) > 0){
+				if( sum == 0 ){
+					sum++;
+					MALLOC(pp,sizeof(*pp));
+					pp[0] = temp;
+					ifmal = 1;			
+					len++;
+				}
+				else{
+					REALLOC(pp,sizeof(*pp)*(sum+1));
+					pp[sum] = temp;
+					sum++;
+					len++;
+				}
+			
+			}
+	
+			if( lseek(fd, -(sum+1)*sizeof(struct post), SEEK_CUR) == -1 ){
+				fprintf(stderr,"fseek error\n");
+				exit(1);
+			}
+
+
+			for( i = 0; i < sum; i++){
+				if( write(fd, &pp[i], sizeof(struct post)) == -1 ){
+					fprintf(stderr, "fwrite error\n");
+					exit(1);
+				}
+			}			
+			
+
+			break;	
+		}	
+
+		len++;
+	}
+
+	if( ftruncate(fd,len*sizeof(struct post)) == -1 ){
+		fprintf(stderr,"truncate error\n");
+		exit(1);
+	}
+
+	if( ifmal ){
+		free(pp);
+		write(clnt_sock, (int *)&good, sizeof(int));
+	}
+	else if( iffind == 1 ) write(clnt_sock, (int *)&good, sizeof(int));
+	else if( iffind == 0 ) write(clnt_sock, (int *)&fail, sizeof(int));
+
+	else fprintf(stderr,"delete error\n");
+	
+	
+}
+
 void *handle_clnt(void * arg)
 {
 	LoginData person;	
@@ -91,7 +245,8 @@ void *handle_clnt(void * arg)
     char no[MAXBUF] = "X";
 	int select;
 	char checkbuffer[MAXBUF]={0,};
-
+	int ok = 0;//
+	int inst;	
 	
     memset(&person, 0, sizeof(LoginData));
 
@@ -123,9 +278,10 @@ void *handle_clnt(void * arg)
 
 		person.ClientFd = clnt_sock;
 
-		if( (handle_rcvmsg(clnt_sock, person)) == 1)//okay
+		if( (handle_rcvmsg(clnt_sock, person)) >= 1)//okay
 		{
 			send_msg(clnt_sock,okay,1);
+			ok = 1;
 		}
 		else//no
 		{
@@ -171,7 +327,28 @@ void *handle_clnt(void * arg)
 		send_msg(clnt_sock,okay,1);
 
 	}
+	if( ok == 1 ){
 	
+		while(1){
+			str_len = read(clnt_sock,(int *) &inst, sizeof(int));
+			switch(inst){
+				case 3:
+					open_file(clnt_sock);
+					break;
+			
+				case 4:
+					delete_a_post(clnt_sock);
+					break;		
+				case 5:
+					p_refresh(clnt_sock);
+					break;
+				case 999:
+					break;
+			}
+			if (inst == 999) break;
+			
+		}
+	}
 	
 	pthread_mutex_lock(&mutex1);
 	for(i=0; i<clnt_cnt; i++)   // remove disconnected client
@@ -206,17 +383,17 @@ int handle_rcvmsg(int clnt_sock, LoginData info)
 	while(!feof(fp))
 	{
 		flag =0;
-		printf("!!\n");
+		//printf("!!\n");
 		fgets(loginData,sizeof(loginData),fp);
 
 		printf("file ID PW: %s",loginData);
 
 		char *temp = strtok(loginData," "); //공백을 기준으로 문자열 자르기
-  
+		
 		if(strcmp(info.ID,temp)==0)
 		{
 			flag++;
-			printf("%d\n",flag);
+			//printf("%d\n",flag);
 		}
 
 		temp = strtok(NULL, " ");//널문자를 기준으로 다시 자르기
@@ -224,9 +401,9 @@ int handle_rcvmsg(int clnt_sock, LoginData info)
 		if((strcmp(info.PASSWORD,temp)==0))
 		{
 			flag++;
-			printf("%d\n",flag);
+			//printf("%d\n",flag);
 		}
-		if(flag == 1 )
+		if(flag >= 1)
 		{
 			break;
 		}
