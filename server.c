@@ -320,8 +320,7 @@ void *handle_clnt(void * arg)
 	    exit(1);
 		}
 
-		fprintf(fp_signup,"\n");
-		fprintf(fp_signup,"%s %s",person.ID,person.PASSWORD);
+		fprintf(fp_signup,"%s %s\n",person.ID,person.PASSWORD);
 		fclose(fp_signup);
 		send_msg(clnt_sock,okay,1);
 
