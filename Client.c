@@ -65,9 +65,10 @@ char *titleText_login;
 
 typedef struct LoginData{
 	int Clientfd;
-	char ID[MAXBUF];
+	char ID[10];
 	char PASSWORD[MAXBUF];
 }LoginData;//클라이언트의 ID와 PASSWORD를 저장하는 구조체
+LoginData logindata;
 
 //Screen
 #define MAX_FPS 50
@@ -160,17 +161,14 @@ void cleanupMenu();
 //signin
 //void updateSignup(key);
 
-
+int sock;
 
 
 int main(int argc, char* argv[])
 {
-	/*int sock;
 	struct sockaddr_in serv_addr;
 	char message[30];
-	char check[MAXBUF]={0,};
 	int str_len;
-    LoginData input;
 	
 	if(argc!=3){
 		printf("Usage : %s <IP> <port>\n", argv[0]);
@@ -190,37 +188,6 @@ int main(int argc, char* argv[])
 	if(connect(sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr))==-1) 
 		error_handling("connect() error!");
 
-	memset(&input,0,sizeof(LoginData));
-
-    printf("ID PASSWORD:");
-    scanf("%s %s",input.ID,input.PASSWORD);
-
-	//printf("ID: %s\n",input.ID);
-	//printf("PASSWORD: %s\n",input.PASSWORD);
-
-	if(write(sock,&input.ID,sizeof(input.ID))<0)
-    {
-		error_handling("write error : ");
-	}
-
-	if(write(sock,&input.PASSWORD,sizeof(input.PASSWORD))<0)
-    {
-		error_handling("write error : ");
-	}
-	printf("write!\n");
-	read(sock,check,1);
-
-	printf("%s\n",check);
-	if(strcmp(check,"O")==0)
-	{
-		printf("i recived O\n");
-	}
-	else
-	{
-		printf("i recived X\n");
-	}
-
-	close(sock);*/
 
 	initialize();
 
@@ -238,6 +205,7 @@ int main(int argc, char* argv[])
 	}
 
 	cleanup();
+	close(sock);
 
 	return 0;
 
@@ -597,9 +565,12 @@ void renderSignin()
 	int leftEdgePos = (int) (80 - titleColumns)/2;
 	int x = leftEdgePos;
 	int y = TOP_BANNER_PAD;
+    char check[MAXBUF]={0,};
 	int i;
 
-	// print out title banner
+	memset(&logindata,0,sizeof(LoginData));
+
+	// print out title banners
 	for(i = 0; i < titleColumns * titleRows; i++)
 	{
 		mvaddch(y, x, titleText_login[i]);
@@ -614,20 +585,127 @@ void renderSignin()
 	y = TOP_BANNER_PAD + titleRows + BANNER_OPTIONS_PAD;
 
 	// print out choices
-	for(i = 0; i < currentNumChoices; i++)
-	{
-		y++;
-		leftEdgePos = (int) (80 - strlen(mc[i].text))/2;
-		// add cursors to indicate slected choice
-		if(y == cursorPos)
-		{
-			mvaddstr(y, leftEdgePos - 3, "-> ");
-			mvaddstr(y, leftEdgePos + strlen(mc[i].text), " <-");
+	// for(i = 0; i < currentNumChoices; i++)
+	// {
+	// 	y++;
+	// 	leftEdgePos = (int) (80 - strlen(mc[i].text))/2;
+	// 	// add cursors to indicate slected choice
+	// 	if(y == cursorPos)
+	// 	{
+	// 		mvaddstr(y, leftEdgePos - 3, "-> ");
+	// 		mvaddstr(y, leftEdgePos + strlen(mc[i].text), " <-");
+	// 	}
+	// 	mvaddstr(y, leftEdgePos, mc[i].text);
+	// }
+
+	mvprintw(y,leftEdgePos, "Input your ID/PASSWORD");
+    echo();
+    crmode();
+    nocbreak();
+    nodelay(stdscr,FALSE);
+    y++;
+    char buf[MAXBUF];
+	int pos = 0;
+	int c;	
+
+    mvprintw(y+1,leftEdgePos, "ID :");
+    mvprintw(y+2,leftEdgePos, "PASSWORD :");
+
+	move(y+1,leftEdgePos+5); // to contents
+	while( ( c = getch() ) != EOF ){
+		
+		if( c == 27 ) return 1;
+
+		if( c == '\n' ) break;
+
+		if( c == KEY_DOWN || c == KEY_RIGHT || c == KEY_UP || c == KEY_LEFT ) continue; //Ignore Arrow Key...
+
+		if(pos == 0 && c == 263){ // backspace(263) handling
+			move(y+1,leftEdgePos+5); // to contents
+			continue;
 		}
-		mvaddstr(y, leftEdgePos, mc[i].text);
+		else if(c == 263){
+			printw(" \b");
+			pos--;
+			continue;
+		}
+		
+		if(pos+1 >= MAXBUF){	
+			printw("\b");
+			continue;
+		}
+     
+		buf[pos++] = c;
 	}
-	mvprintw(22,0, "Use arrow keys to select an option"); 
-	mvprintw(23,0, "Select an option with (Enter)"); 
-	mvprintw(24,0, "Select \"Quit\" or press (ESC) to quit"); 
+
+
+	buf[pos] = '\0';
+	
+	strcpy(logindata.ID,buf);// store title
+
+    move(y+2,leftEdgePos+12); // to contents
+    char buf2[MAXBUF];
+	pos = 0;	
+    noecho();
+    crmode();
+	while( ( c = getch() ) != EOF ){
+		
+		if( c == 27 ) return 1;
+
+		if( c == '\n' ) break;
+
+		if( c == KEY_DOWN || c == KEY_RIGHT || c == KEY_UP || c == KEY_LEFT ) continue; //Ignore Arrow Key...
+
+		if(pos == 0 && c == 263){ // backspace(263) handling
+			move(0,17);
+			continue;
+		}
+		else if(c == 263){
+			printw(" \b");
+			pos--;
+			continue;
+		}
+		
+		if(pos+1 >= MAXBUF){	
+			printw("\b");
+			continue;
+		}
+        printw("*");
+		buf2[pos++] = c;
+	}
+
+
+	buf2[pos] = '\0';
+	
+	strcpy(logindata.PASSWORD,buf2);// store title
+
+	//printf("ID: %s\n",input.ID);
+	//printf("PASSWORD: %s\n",input.PASSWORD);
+
+	if(write(sock,&logindata.ID,sizeof(logindata.ID))<0)
+    {
+		error_handling("write error : ");
+	}
+
+	if(write(sock,&logindata.PASSWORD,sizeof(logindata.PASSWORD))<0)
+    {
+		error_handling("write error : ");
+	}
+
+	read(sock,check,1);
+
+	if(strcmp(check,"O")==0)
+	{
+		mvprintw(y+4,leftEdgePos, "success!");
+        
+	}
+	else
+	{
+		mvprintw(y+4,leftEdgePos, "fail!");
+	}
+
+	return 0;
+
+ 
 }
 
