@@ -1,3 +1,4 @@
+/*
 #include <stdio.h>
 #include <curses.h>
 #include <stdlib.h>
@@ -22,7 +23,7 @@ struct post{
 	int day;
 };
 
-static char clnt_ID[10] = "John";
+static char clnt_ID[10] = "John"; // from client.c ,,,,
 
 int write_title(struct post* p);
 void get_time(struct post* p);
@@ -38,8 +39,9 @@ int delete_post(struct post p);
 void print_posts_set(struct post *plist, int st, int end, int no);
 struct post * post_refresh(int *sum, int year, int month, int day);
 int select_delete(int st, int end);
+*/
 
-
+static int sock;
 //write a title
 int write_title(struct post *p){ 
 	char buf[TITLEBUF];
@@ -55,7 +57,7 @@ int write_title(struct post *p){
 		if( c == KEY_DOWN || c == KEY_RIGHT || c == KEY_UP || c == KEY_LEFT ) continue; //Ignore Arrow Key...
 
 		if(pos == 0 && c == 263){ // backspace(263) handling
-			move(0,17);
+			move(0,7);
 			continue;
 		}
 		else if(c == 263){
@@ -68,7 +70,6 @@ int write_title(struct post *p){
 			printw("\b");
 			continue;
 		}
-
 		buf[pos++] = c;
 	}
 
@@ -101,7 +102,6 @@ void write_contents(struct post *p){
 	char buf[CONTBUF];
 	int pos = 0;
 	int c;
-	int line_len = 0;
 
 	while( ( c = getch() ) != EOF ){
 		if( c == 27 ) { // ESC(27) handling to finish contents
@@ -114,7 +114,6 @@ void write_contents(struct post *p){
 		if( c == '\n' ) { //Enter('\n') handling
 			move(5,0);		
 			printw("%s\n",buf);
-			line_len = 0;
 		}
 
 		if((pos == 0 && c == 263) || ( buf[pos-1] == '\n' && c == 263 )){ // backspace(263) handling
@@ -133,12 +132,12 @@ void write_contents(struct post *p){
 
 		buf[pos++] = c;
 		buf[pos] = '\0';
-		line_len++;
 	}
 
 	if( c == EOF && pos == 0 ) exit(1); //handling...
 
 	
+
 	get_time(p); //what time is it??
 	strcpy(p->contents,buf); //store contents
 	
@@ -148,7 +147,21 @@ void write_contents(struct post *p){
 //store post to file
 void store_post(struct post p){ 
 	int fd;
-	
+	int inst = 3;
+	if( write(sock,(int *)&inst,sizeof(int)) == -1 ){
+		fprintf(stderr, "write to sock error\n");
+		exit(1);
+	}
+
+	if( write(sock, &p, sizeof(p)) == -1 ){
+		fprintf(stderr,"write error\n");
+		exit(1);
+	}
+
+
+
+/*	
+
 	if( ( fd = open("post_data", O_WRONLY | O_CREAT | O_APPEND, 0666) ) == -1 ){ //Write only, create if doesn't exist, O_APPEND , & permissions
 		fprintf(stderr,"can't open 'post_data' file\n");
 		exit(1);
@@ -163,7 +176,7 @@ void store_post(struct post p){
 		fprintf(stderr,"close error\n");
 		exit(1);
 	}
-
+*/
 }
 
 //before posting, print notice
@@ -204,7 +217,6 @@ void write_post(int year, int month, int day){
 	p.day = day;
 	//
 		
-	keypad(stdscr, TRUE);
 	crmode();
 	echo();	
 	clear();
@@ -221,15 +233,18 @@ void write_post(int year, int month, int day){
 
 	v = write_title(&p);
 	if( v == 1 ) return;
-
 	write_contents(&p);
-	
+
+
+	printw("5555555555");	
 	store_post(p);
+
 }
 
 
 //delete a post
 int delete_post(struct post p){
+	/*
 	struct post temp;
 	struct post *pp;
 	int i;
@@ -238,8 +253,16 @@ int delete_post(struct post p){
 	int len = 0;
 	int ifmal = 0;
 	int iffind = 0;
+	*/
+	int inst = 4;
+	int result;
 
 	
+	write(sock, (int *)&inst, sizeof(int));
+
+	write(sock, &p, sizeof(p));
+
+	/*
 	if( ( fd = open("post_data", O_RDWR) ) == -1 ){
 		fprintf(stderr,"cannot open 'post_data' file\n");
 		exit(1);
@@ -291,6 +314,8 @@ int delete_post(struct post p){
 	}
 
 	close(fd);
+
+
 	if( ifmal ){
 		free(pp);
 		return 0;
@@ -303,17 +328,51 @@ int delete_post(struct post p){
 	fprintf(stderr,"delete error\n");
 	exit(-1);
 
+	*/
+	read(sock,(int *)&result,sizeof(int));
+
+
+	return result;
 	
 }
 
 
 //literally refresh postslist
 struct post * post_refresh(int *sum, int year, int month, int day){
-	int fd;
+/*	int fd;
 	struct post *plist;
 	struct post temp;
 	*sum = 0;
+*/
+	struct post *plist;
+	*sum = 0;
+	int tsum;
+	int inst = 5;
+	int i;	
 
+	write(sock,&inst,sizeof(int));
+	
+	write(sock,(int *)&year,sizeof(int));
+	write(sock,(int *)&month,sizeof(int));
+	write(sock,(int *)&day,sizeof(int));
+	
+
+	read(sock, (int *)&tsum,sizeof(int));
+	
+	
+	*sum = tsum;
+
+	MALLOC(plist,sizeof(struct post)*tsum);
+	for(i = 0; i < tsum; i++){
+		read(sock, &plist[i], sizeof(struct post));
+	}
+
+	//read(sock, (struct post *)plist, sizeof(struct post)*tsum);
+
+
+	return plist;
+
+	/*
 	if( ( fd = open("post_data",O_RDONLY) ) == -1 ){
 		fprintf(stderr,"can't open 'post_data' file\n");
 		exit(1);
@@ -342,8 +401,8 @@ struct post * post_refresh(int *sum, int year, int month, int day){
 	}	
 	
 	close(fd);
-	
-	return plist;
+	*/
+
 }
 
 //print a  post
@@ -375,6 +434,7 @@ void empty_day(int year,int month, int day){
 	noecho();
 	clear();
 
+	printw("< %d - %d - %d >\n\n",year, month, day );
 	printw("There is no posts... Please posting TT\n");
 	printw("Press <p> to post\n");
 	printw("or Press <ESC> to return\n");
@@ -401,10 +461,11 @@ void print_posts_set(struct post *plist, int st, int end,int no){
 	int i;
 	
 	clear();
+	printw("< %d - %d - %d >\n\n",plist[0].year, plist[0].month, plist[0].day );
 	for(i = st;i < end; i++){
-		printw("%d : %s, %s - %s\n\n",i-st,plist[i].ID,plist[i].title,plist[i].time);
+		printw("%d : \"%s\" - %s, written in %s\n\n",i-st,plist[i].title,plist[i].ID,plist[i].time);
 	}	
-	printw("\n <----   %d   ---->\n",no);
+	printw("\n                  <---------   %d   --------->\n",no);
 	printw("Press the number of a post you want to see\n");
 	printw("Press <p> to post\n");
 	printw("Press <d> to delete a post ( You can only delete your own post )\n");
@@ -455,7 +516,7 @@ void print_posts(struct post *plist, int len,int year, int month, int day){
 		
 		if( c == 'd' ){ // delete
 			del = select_delete(st,end) - 48;
-			if( del == -1 ) continue;
+			if( del == 1 ) continue;
 			if( delete_post(plist[st+del]) == -1 ){
 				printw("You couldn't delete other user's post !!\n");
 				printw("Press any key to continue..\n");
@@ -496,7 +557,6 @@ void print_posts(struct post *plist, int len,int year, int month, int day){
 
 }
 
-
 //what is the number of a post you wanna delete?
 int select_delete(int st, int end){
 	int c;
@@ -517,15 +577,22 @@ int select_delete(int st, int end){
 
 }
 
-
 //show posts in selected date
-void posts_list(int year, int month,int day){
+void posts_list(int clnt_sock, int year, int month,int day){
 	struct post *plist;
 	int fd;
 	int sum = 0;
 	//int ifmal = 0;
 	struct post temp;
+	sock = clnt_sock;
 
+	keypad(stdscr, TRUE);
+	
+	
+
+	plist = post_refresh(&sum,year,month,day);	
+	
+	/*	
 	if( ( fd = open("post_data", O_RDONLY | O_CREAT, 0666 ) ) == -1 ){
 		fprintf(stderr,"can't open 'post_data' file\n");
 		exit(1);
@@ -537,7 +604,6 @@ void posts_list(int year, int month,int day){
 				sum++;
 				MALLOC(plist,sizeof(*plist));
 				plist[0] = temp;
-				//ifmal = 1;
 			}
 			else{
 				REALLOC(plist,sizeof(*plist)*(sum+1));
@@ -549,7 +615,7 @@ void posts_list(int year, int month,int day){
 	
 	close(fd);
 	
-
+*/
 	if( sum == 0 ){ // no posts for that month & that day
 		empty_day(year,month,day);
 		return;
@@ -561,3 +627,15 @@ void posts_list(int year, int month,int day){
 	}
 }
 
+/*
+int main(void){
+
+	initscr();
+	
+	posts_list(2020,11,19); //input year, month, day 2020-11-19	
+	
+	//
+	endwin();
+	return 0;
+
+}*/
