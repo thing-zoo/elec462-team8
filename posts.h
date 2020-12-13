@@ -22,7 +22,7 @@ struct post{
 	int day;
 };
 
-static char clnt_ID[10] = "John";
+char clnt_ID[10];
 
 
 int write_title(struct post* p);

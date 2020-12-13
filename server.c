@@ -41,7 +41,7 @@ int main(int argc, char *argv[])
 {
 	int serv_sock, clnt_sock;
 	struct sockaddr_in serv_adr, clnt_adr;
-	int clnt_adr_sz;
+	socklen_t clnt_adr_sz;
 	pthread_t t_id;
 
 	if(argc!=2) 
@@ -373,8 +373,6 @@ int handle_rcvmsg(int clnt_sock, LoginData info)
 	//printf("handle_rcvmsg\n");
 	FILE* fp;
 	char loginData[MAXBUF];
-	char* id;
-	char* pw;
     int flag = 0;
 
 	fp = fopen("data.txt","r");
@@ -413,7 +411,6 @@ int handle_rcvmsg(int clnt_sock, LoginData info)
 
 void send_msg(int client, char * msg, int len)// send to all
 {
-	int i;
 	pthread_mutex_lock(&mutex1);
 
 	//printf("send_msg: clnt_socks: %d connect!\n", client);

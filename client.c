@@ -124,7 +124,7 @@ void error_handling(char *message);
 //처음 옵셥 선택할 때 사용되는 함수들
 int getState();
 int getPrevState();
-int setState(int newState);
+void setState(int newState);
 
 //첫 화면에 옵션 선택부분 구현
 void initMenu(int numberOfChoices);
@@ -150,8 +150,6 @@ void cleanupMenu();
 int main(int argc, char* argv[])
 {
 	struct sockaddr_in serv_addr;
-	char message[30];
-	int str_len;
 
 	signal(SIGINT, SIG_IGN);
 	signal(SIGQUIT, SIG_IGN);
@@ -348,7 +346,7 @@ int getPrevState()
 	return prevState;
 }
 
-int setState(int newState)
+void setState(int newState)
 {
 	prevState = state;
 	state = newState;

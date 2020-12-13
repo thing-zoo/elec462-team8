@@ -104,7 +104,6 @@ void write_contents(struct post *p){
 
 //store post to file
 void store_post(struct post p){ 
-	int fd;
 	int inst = 3;
 	if( write(sock,(int *)&inst,sizeof(int)) == -1 ){
 		fprintf(stderr, "write to sock error\n");
@@ -412,11 +411,7 @@ int select_delete(int st, int end){
 //show posts in selected date
 void posts_list(int year, int month,int day){
 	struct post *plist;
-	int fd;
 	int sum = 0;
-	//int ifmal = 0;
-	struct post temp;
-
 
 	plist = post_refresh(&sum,year,month,day);	
 	

@@ -139,7 +139,7 @@ void drawCal(struct tm t, int monthdays)
     move(6, 0);
     for (int i = 0; i < firstday; i++)
         printw("%8s", "");
-    for (int i = 0, day = 1, y = 4; i < monthdays; i++)
+    for (int i = 0, day = 1; i < monthdays; i++)
     {
         printw("%6s", "");
 

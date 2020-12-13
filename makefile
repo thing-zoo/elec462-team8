@@ -1,4 +1,3 @@
-## Makefile for webserv
 
 .PHONY: clean
 
@@ -7,10 +6,10 @@ RM = rm -f
 all: server client
 
 server: server.o
-	gcc -o server server.c
+	gcc -o server server.o -lcurses -lpthread
 
 client: client.o
-	gcc -o client client.c
+	gcc -o client client.o -lcurses
 
 server.o: server.c
 	gcc -Wall -g -c server.c
