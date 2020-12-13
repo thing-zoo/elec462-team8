@@ -6,6 +6,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <pthread.h>
+#include <fcntl.h>
 
 #define BUF_SIZE 100
 #define MAX_CLNT 256
@@ -14,6 +15,7 @@
 
 void* handle_clnt(void * arg);
 void error_handling(char * msg);
+int sign_up(char *id, char *pw);
 
 int clnt_cnt=0;
 int clnt_socks[MAX_CLNT];
@@ -144,10 +146,25 @@ void *handle_clnt(void * arg)
 		}
 
 		person.ClientFd = clnt_sock;
-
+		int fd;
+	    int flag;
 		FILE* fp_signup;
 
+		
 		fp_signup = fopen("data.txt","a");
+		fd = fileno(fp_signup);
+
+		if((flag=fcntl(fd,F_GETFL))==-1){
+		perror("fcntlfailed");
+		exit(1);
+		}
+		
+		flag |=O_APPEND;
+		if ((fcntl(fd, F_SETFL, flag)) == -1) {
+	    perror("fcntl failed");
+	    exit(1);
+		}
+
 		fprintf(fp_signup,"\n");
 		fprintf(fp_signup,"%s %s",person.ID,person.PASSWORD);
 		fclose(fp_signup);
