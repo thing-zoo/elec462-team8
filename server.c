@@ -250,8 +250,6 @@ void *handle_clnt(void * arg)
 	
     memset(&person, 0, sizeof(LoginData));
 
-    printf("hello\n");
-
 	str_len=read(clnt_sock, checkbuffer, sizeof(checkbuffer));
 	if(strcmp(checkbuffer,"signin")==0)
 	{
@@ -264,7 +262,7 @@ void *handle_clnt(void * arg)
 
 	if(select == 2)
 	{
-		printf("%d\n",select);
+		//printf("%d\n",select);
 		str_len=read(clnt_sock, person.ID, sizeof(person.ID));
 		//printf("%s",person.ID);
 		
@@ -290,7 +288,7 @@ void *handle_clnt(void * arg)
 	}
 	if(select == 3)
 	{
-		printf("%d\n",select);
+		//printf("%d\n",select);
 		str_len=read(clnt_sock, person.ID, sizeof(person.ID));
 		
 		str_len=read(clnt_sock, person.PASSWORD, sizeof(person.PASSWORD));
@@ -371,7 +369,7 @@ void *handle_clnt(void * arg)
 
 int handle_rcvmsg(int clnt_sock, LoginData info)
 {
-	printf("handle_rcvmsg\n");
+	//printf("handle_rcvmsg\n");
 	FILE* fp;
 	char loginData[MAXBUF];
 	char* id;
@@ -386,7 +384,7 @@ int handle_rcvmsg(int clnt_sock, LoginData info)
 		//printf("!!\n");
 		fgets(loginData,sizeof(loginData),fp);
 
-		printf("file ID PW: %s",loginData);
+		//printf("file ID PW: %s",loginData);
 
 		char *temp = strtok(loginData," "); //공백을 기준으로 문자열 자르기
 		
@@ -417,7 +415,7 @@ void send_msg(int client, char * msg, int len)// send to all
 	int i;
 	pthread_mutex_lock(&mutex1);
 
-	printf("send_msg: clnt_socks: %d connect!\n", client);
+	//printf("send_msg: clnt_socks: %d connect!\n", client);
 	write(client, msg, len);
 
 	pthread_mutex_unlock(&mutex1);
