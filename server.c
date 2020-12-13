@@ -167,6 +167,7 @@ void delete_a_post(int clnt_sock){
 	struct post p;
 	struct post temp;
 	struct post *pp;
+	char clnt_ID[10];
 	
 	int good = 0;
 	int fail = 1;
@@ -177,7 +178,7 @@ void delete_a_post(int clnt_sock){
 	}
 
 	read(clnt_sock, &p, sizeof(p));
-
+	read(clnt_sock, clnt_ID, sizeof(clnt_ID));
 
 	while( read(fd, &temp, sizeof(struct post)) > 0 ){
 		if( !strcmp(p.ID,clnt_ID) && !strcmp(temp.ID,p.ID) && !strcmp(temp.title,p.title) && !strcmp(temp.time,p.time) ){ //check ID, tile, time -> What are we gonna delete?
