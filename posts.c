@@ -190,7 +190,8 @@ int delete_post(struct post p){
 	write(sock, (int *)&inst, sizeof(int));
 
 	write(sock, &p, sizeof(p));
-
+	write(sock, clnt_ID, sizeof(clnt_ID));
+	
 	read(sock,(int *)&result,sizeof(int));
 
 
